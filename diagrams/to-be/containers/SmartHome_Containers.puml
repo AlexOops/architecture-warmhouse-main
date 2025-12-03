@@ -1,0 +1,68 @@
+@startuml SmartHome_Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Экосистема "Тёплый дом" — контейнеры (To-Be)
+
+Person(user, "Пользователь", "Владелец дома. Управляет отоплением и другими устройствами.")
+Person(admin, "Администратор/поддержка", "Следит за состоянием системы и помогает пользователям.")
+
+System_Boundary(smarthome, "Платформа 'Тёплый дом'") {
+    Container(webApp, "Web / PWA App", "SPA/PWA", "Интерфейс для пользователей: управление устройствами, сценарии, мониторинг.")
+    Container(apiGateway, "API Gateway", "Reverse proxy / BFF", "Единая точка входа для клиентов.")
+
+    Container(authSvc, "Auth & Users Service", "Go/Node.js + DB", "Пользователи, дома, роли и доступ.")
+    Container(deviceSvc, "Device Management Service", "Go/Node.js + DB", "Регистрация устройств, их состояние, привязка к домам.")
+    Container(telemetrySvc, "Telemetry Service", "Go/Node.js + TimeSeries DB", "Приём и хранение телеметрии с датчиков.")
+    Container(heatingSvc, "Heating Service", "Go/Node.js + DB", "Управление системой отопления, сценарии.")
+    Container(lightSvc, "Lighting Service", "Go/Node.js + DB", "Управление освещением.")
+    Container(gateSvc, "Gate Service", "Go/Node.js + DB", "Управление воротами и доступом.")
+    Container(billingSvc, "Billing Service", "Go/Node.js + DB", "Тарифы, подписки, SaaS-модули.")
+    Container(notificationSvc, "Notification Service", "Go/Node.js", "Отправка e-mail/SMS/push-уведомлений.")
+
+    ContainerDb(authDb, "Auth DB", "PostgreSQL", "Учётные записи и доступ.")
+    ContainerDb(deviceDb, "Device DB", "PostgreSQL", "Устройства и их привязка к домам.")
+    ContainerDb(telemetryDb, "Telemetry DB", "Time-series DB", "История телеметрии датчиков.")
+    ContainerDb(billingDb, "Billing DB", "PostgreSQL", "Подписки и платежи.")
+
+    ContainerQueue(eventBus, "Event Bus", "Kafka/RabbitMQ/NATS", "Асинхронный обмен событиями между сервисами.")
+}
+
+System_Ext(iotDevices, "Устройства и датчики", "Датчики температуры, реле отопления, свет, ворота.")
+System_Ext(paymentProvider, "Платёжный провайдер", "Онлайн-оплата подписки.")
+System_Ext(emailSmsProvider, "E-mail/SMS провайдер", "Каналы доставки уведомлений.")
+
+Rel(user, webApp, "Использует", "HTTPS")
+Rel(admin, webApp, "Работает через административный UI", "HTTPS")
+
+Rel(webApp, apiGateway, "REST / WebSocket", "HTTPS")
+
+Rel(apiGateway, authSvc, "Запросы аутентификации и управления пользователями", "REST")
+Rel(apiGateway, deviceSvc, "Операции с устройствами и домами", "REST")
+Rel(apiGateway, telemetrySvc, "Получение телеметрии для UI", "REST")
+Rel(apiGateway, heatingSvc, "Команды управления отоплением", "REST")
+Rel(apiGateway, lightSvc, "Команды управления освещением", "REST")
+Rel(apiGateway, gateSvc, "Команды управления воротами", "REST")
+Rel(apiGateway, billingSvc, "Управление подпиской", "REST")
+
+Rel(authSvc, authDb, "Чтение/запись", "SQL")
+Rel(deviceSvc, deviceDb, "Чтение/запись", "SQL")
+Rel(telemetrySvc, telemetryDb, "Чтение/запись", "TSDB")
+Rel(billingSvc, billingDb, "Чтение/запись", "SQL")
+
+Rel(iotDevices, telemetrySvc, "Отправляют телеметрию", "MQTT/HTTP")
+Rel(heatingSvc, iotDevices, "Команды включения/выключения отопления", "MQTT/HTTP")
+Rel(lightSvc, iotDevices, "Команды управления освещением", "MQTT/HTTP")
+Rel(gateSvc, iotDevices, "Команды управления воротами", "MQTT/HTTP")
+
+Rel(deviceSvc, eventBus, "Публикует события об устройствах", "Events")
+Rel(telemetrySvc, eventBus, "Публикует события телеметрии", "Events")
+Rel(heatingSvc, eventBus, "Реагирует на события телеметрии", "Events")
+Rel(lightSvc, eventBus, "Реагирует на события телеметрии/сценариев", "Events")
+Rel(gateSvc, eventBus, "Реагирует на события доступа", "Events")
+Rel(billingSvc, eventBus, "Публикует события об оплате/подписках", "Events")
+
+Rel(billingSvc, paymentProvider, "Создаёт платежи, проверяет статус", "HTTPS")
+Rel(notificationSvc, emailSmsProvider, "Отправляет уведомления", "HTTPS")
+Rel(eventBus, notificationSvc, "Получает события для отправки уведомлений", "Events")
+
+@enduml

@@ -1,0 +1,32 @@
+@startuml HeatingService_Components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Heating Service — компоненты
+
+Container_Ext(apiGateway, "API Gateway", "Внешний контейнер")
+Container_Ext(iotDevices, "Устройства отопления", "Котлы, радиаторы, реле.")
+ContainerQueue(eventBus, "Event Bus", "Kafka/RabbitMQ/NATS", "События телеметрии и команд.")
+ContainerDb(heatingDb, "Heating DB", "PostgreSQL", "Настройки отопления, сценарии, расписания.")
+
+Container_Boundary(heatingSvc, "Heating Service") {
+
+  Component(heatingApi, "Heating API", "REST API", "Принимает команды управления отоплением от API Gateway.")
+  Component(heatingAppService, "Heating Application Service", "Сервис приложения", "Обрабатывает команды, применяет сценарии.")
+  Component(heatingDomain, "Heating Domain Logic", "Domain service", "Бизнес-логика управления отоплением (пороговые значения, режимы).")
+  Component(heatingRepo, "Heating Repository", "Repository", "Работа с Heating DB.")
+  Component(heatingDeviceAdapter, "Heating Device Adapter", "Adapter", "Отправка команд устройствам отопления.")
+  Component(heatingEventHandler, "Telemetry Event Handler", "Event consumer", "Обрабатывает события телеметрии из Event Bus.")
+}
+
+Rel(apiGateway, heatingApi, "Команды управления отоплением", "REST")
+Rel(heatingApi, heatingAppService, "Вызывает")
+Rel(heatingAppService, heatingDomain, "Использует")
+Rel(heatingAppService, heatingRepo, "Читает/пишет настройки, сценарии")
+Rel(heatingAppService, heatingDeviceAdapter, "Отправляет команды")
+
+Rel(heatingRepo, heatingDb, "Чтение/запись", "SQL")
+Rel(eventBus, heatingEventHandler, "Передаёт события телеметрии", "Events")
+Rel(heatingEventHandler, heatingDomain, "Обновляет состояние / принимает решения")
+Rel(heatingDeviceAdapter, iotDevices, "Команды включения/выключения", "MQTT/HTTP")
+
+@enduml

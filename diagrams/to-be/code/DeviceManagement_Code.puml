@@ -1,0 +1,44 @@
+@startuml DeviceManagement_Code
+title Device Management Service — пример структуры кода
+
+class DeviceController {
+    + registerDevice(request)
+    + changeDeviceState(request)
+}
+
+class DeviceApplicationService {
+    + registerDevice(cmd)
+    + changeDeviceState(cmd)
+}
+
+class DeviceRegistry {
+    + register(device)
+    + changeState(deviceId, newState)
+}
+
+class DeviceRepository {
+    + findById(id): Device
+    + save(device): void
+}
+
+class Device {
+    - id: UUID
+    - type: DeviceType
+    - status: DeviceStatus
+    - homeId: UUID
+    + changeState(newState)
+}
+
+class DeviceEventPublisher {
+    + publishDeviceRegistered(device)
+    + publishDeviceStateChanged(device)
+}
+
+DeviceController --> DeviceApplicationService
+DeviceApplicationService --> DeviceRegistry
+DeviceApplicationService --> DeviceRepository
+DeviceApplicationService --> DeviceEventPublisher
+DeviceRepository --> Device
+DeviceRegistry --> Device
+
+@enduml

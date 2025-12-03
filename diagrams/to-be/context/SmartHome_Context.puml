@@ -1,0 +1,26 @@
+@startuml SmartHome_Context_ToBe
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Система "Теплый дом" — контекст (To-Be, микросервисная платформа)
+
+Person(user, "Пользователь", "Владелец дома. Управляет устройствами умного дома.")
+Person(admin, "Администратор / поддержка", "Следит за состоянием платформы, помогает пользователям.")
+Person(installer, "Специалист по установке", "Подключает новые устройства и помогает при сложных случаях.")
+
+System_Boundary(platform, "Платформа 'Теплый дом' (микросервисы)") {
+    System(smarthome, "Smart Home Platform", "Набор микросервисов (API Gateway, управление устройствами, телеметрия, отопление, освещение, ворота, биллинг и др.)","Предоставляет пользователям SaaS-экосистему для управления умными домами.")
+}
+
+System_Ext(iotDevices, "Устройства и датчики", "Датчики температуры, реле отопления, светильники, приводы ворот, камеры.")
+System_Ext(paymentProvider, "Платежный провайдер", "Обработка онлайн-платежей за подписку.")
+System_Ext(notificationProvider, "Провайдер уведомлений", "E-mail / SMS / push-рассылки.")
+
+Rel(user, smarthome, "Управляет домом через веб / мобильное приложение", "HTTPS")
+Rel(admin, smarthome, "Администрирует систему, просматривает состояние сервисов", "HTTPS")
+Rel(installer, smarthome, "Регистрирует и проверяет устройства при установке", "HTTPS")
+
+Rel(iotDevices, smarthome, "Передают телеметрию, принимают команды управления", "MQTT / HTTP(S)")
+Rel(smarthome, paymentProvider, "Создает и проверяет платежи по подпискам", "HTTPS")
+Rel(smarthome, notificationProvider, "Отправляет пользователям уведомления", "HTTPS")
+
+@enduml
