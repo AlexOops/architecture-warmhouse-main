@@ -1,0 +1,206 @@
+openapi: 3.0.3
+info:
+  title: Heating Service API
+  version: 1.0.0
+  description: API микросервиса управления отоплением в экосистеме «Тёплый дом».
+
+servers:
+  - url: https://api.teplydom.local/heating
+    description: Основной сервер API
+
+paths:
+  /houses/{houseId}/heating:
+    get:
+      summary: Получить состояние системы отопления дома
+      description: Возвращает текущее состояние отопления для указанного дома.
+      parameters:
+        - name: houseId
+          in: path
+          required: true
+          description: UUID дома
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Состояние отопления получено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatingState'
+        '404':
+          description: Дом не найден или отопление не сконфигурировано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /houses/{houseId}/heating/commands/setpoint:
+    post:
+      summary: Установить целевую температуру
+      description: |
+        Устанавливает целевую температуру для системы отопления в доме.
+        Команда может использоваться сервисом сценариев или напрямую из клиентского приложения.
+      parameters:
+        - name: houseId
+          in: path
+          required: true
+          description: UUID дома
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetpointCommandRequest'
+      responses:
+        '202':
+          description: Команда принята к исполнению
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatingCommandAcceptedResponse'
+        '400':
+          description: Неверные параметры команды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Дом или конфигурация отопления не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /houses/{houseId}/heating/commands/mode:
+    post:
+      summary: Изменить режим работы отопления
+      description: |
+        Устанавливает режим работы системы отопления: auto, manual, off.
+      parameters:
+        - name: houseId
+          in: path
+          required: true
+          description: UUID дома
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModeCommandRequest'
+      responses:
+        '202':
+          description: Команда принята к исполнению
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatingCommandAcceptedResponse'
+        '400':
+          description: Неверные параметры команды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Дом или конфигурация отопления не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    HeatingState:
+      type: object
+      properties:
+        house_id:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          description: Текущий режим работы системы отопления.
+          enum: [ auto, manual, off ]
+        current_temperature:
+          type: number
+          format: float
+          description: Текущая измеренная температура в доме.
+          example: 21.5
+        target_setpoint:
+          type: number
+          format: float
+          description: Целевая температура, установленная системой.
+          example: 22.0
+        last_updated_at:
+          type: string
+          format: date-time
+          description: Время последнего обновления состояния.
+      required:
+        - house_id
+        - mode
+
+    SetpointCommandRequest:
+      type: object
+      properties:
+        target_setpoint:
+          type: number
+          format: float
+          description: Новое значение целевой температуры в градусах Цельсия.
+          example: 23.0
+        source:
+          type: string
+          description: Идентификатор источника команды (user, automation, schedule).
+          example: "user"
+      required:
+        - target_setpoint
+
+    ModeCommandRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          description: Новый режим работы системы.
+          enum: [ auto, manual, off ]
+          example: "auto"
+        source:
+          type: string
+          description: Идентификатор источника команды.
+          example: "automation"
+      required:
+        - mode
+
+    HeatingCommandAcceptedResponse:
+      type: object
+      properties:
+        house_id:
+          type: string
+          format: uuid
+        command_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          description: Статус приёма команды.
+          example: "accepted"
+        accepted_at:
+          type: string
+          format: date-time
+      required:
+        - house_id
+        - command_id
+        - status
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+      required:
+        - message

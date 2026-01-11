@@ -1,0 +1,137 @@
+asyncapi: 2.6.0
+info:
+  title: Telemetry & Device Events API
+  version: 1.0.0
+  description: |
+    AsyncAPI-спецификация для потоков телеметрии и доменных событий устройств в экосистеме «Тёплый дом».
+
+defaultContentType: application/json
+
+servers:
+  event-bus:
+    url: mqtts://event-bus.teplydom.local:8883
+    protocol: mqtt
+    description: Шина событий/телеметрии (MQTT / брокер сообщений).
+
+channels:
+  telemetry/device/{deviceId}/temperature:
+    description: Канал приёма показаний температуры от конкретного устройства.
+    parameters:
+      deviceId:
+        description: UUID устройства.
+        schema:
+          type: string
+    subscribe:
+      summary: Приём телеметрии от устройств.
+      operationId: receiveTemperatureTelemetry
+      message:
+        name: TemperatureTelemetryMessage
+        title: Сообщение телеметрии температуры
+        payload:
+          $ref: '#/components/schemas/TemperatureTelemetryPayload'
+
+  device.events:
+    description: Канал доменных событий устройств (регистрация, изменение состояния и т.п.).
+    subscribe:
+      summary: Подписка на доменные события устройств.
+      operationId: consumeDeviceEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/DeviceRegisteredMessage'
+          - $ref: '#/components/messages/DeviceStateChangedMessage'
+    publish:
+      summary: Публикация доменных событий устройств.
+      operationId: publishDeviceEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/DeviceRegisteredMessage'
+          - $ref: '#/components/messages/DeviceStateChangedMessage'
+
+components:
+  messages:
+    DeviceRegisteredMessage:
+      name: DeviceRegistered
+      title: Устройство зарегистрировано
+      payload:
+        $ref: '#/components/schemas/DeviceRegisteredPayload'
+
+    DeviceStateChangedMessage:
+      name: DeviceStateChanged
+      title: Состояние устройства изменилось
+      payload:
+        $ref: '#/components/schemas/DeviceStateChangedPayload'
+
+  schemas:
+    TemperatureTelemetryPayload:
+      type: object
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        recorded_at:
+          type: string
+          format: date-time
+        value:
+          type: number
+          format: float
+          description: Показание температуры в градусах Цельсия.
+          example: 21.7
+        unit:
+          type: string
+          example: "C"
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Дополнительные данные (например, источник, качество сигнала).
+      required:
+        - device_id
+        - recorded_at
+        - value
+
+    DeviceRegisteredPayload:
+      type: object
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        house_id:
+          type: string
+          format: uuid
+        device_type_code:
+          type: string
+          example: "TEMPERATURE_SENSOR"
+        registered_at:
+          type: string
+          format: date-time
+        name:
+          type: string
+        serial_number:
+          type: string
+      required:
+        - device_id
+        - house_id
+        - device_type_code
+        - registered_at
+
+    DeviceStateChangedPayload:
+      type: object
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        previous_status:
+          type: string
+          example: "offline"
+        new_status:
+          type: string
+          example: "online"
+        changed_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          example: "reconnected"
+      required:
+        - device_id
+        - new_status
+        - changed_at

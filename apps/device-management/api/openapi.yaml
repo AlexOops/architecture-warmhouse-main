@@ -1,0 +1,199 @@
+openapi: 3.0.3
+info:
+  title: Device Management Service API
+  version: 1.0.0
+  description: API микросервиса управления устройствами в экосистеме «Тёплый дом».
+
+servers:
+  - url: https://api.teplydom.local/device-management
+    description: Основной сервер API
+
+paths:
+  /devices/{id}:
+    get:
+      summary: Получить информацию об устройстве
+      description: Возвращает данные конкретного устройства по его идентификатору.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID устройства
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Устройство найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /houses/{houseId}/devices:
+    get:
+      summary: Получить список устройств дома
+      description: Возвращает все устройства, привязанные к конкретному дому.
+      parameters:
+        - name: houseId
+          in: path
+          required: true
+          description: UUID дома
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Список устройств
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+
+  /devices:
+    post:
+      summary: Зарегистрировать новое устройство
+      description: Создаёт новое устройство в системе и привязывает его к дому.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCreateRequest'
+      responses:
+        '201':
+          description: Устройство успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          description: Неверные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /devices/{id}/state:
+    patch:
+      summary: Изменить состояние устройства
+      description: Обновляет статус или состояние устройства (например, включено/выключено).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID устройства
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceStateUpdateRequest'
+      responses:
+        '200':
+          description: Состояние обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /device-types:
+    get:
+      summary: Получить список типов устройств
+      description: Возвращает доступные типы устройств.
+      responses:
+        '200':
+          description: Типы устройств
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceType'
+
+components:
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        house_id:
+          type: string
+          format: uuid
+        device_type_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        serial_number:
+          type: string
+        status:
+          type: string
+          example: "online"
+        last_seen_at:
+          type: string
+          format: date-time
+
+    DeviceCreateRequest:
+      type: object
+      required:
+        - house_id
+        - device_type_id
+        - name
+        - serial_number
+      properties:
+        house_id:
+          type: string
+          format: uuid
+        device_type_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        serial_number:
+          type: string
+
+    DeviceStateUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "online"
+        custom_state:
+          type: object
+          additionalProperties: true
+      example:
+        status: "online"
+        custom_state:
+          heating_enabled: true
+
+    DeviceType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        supports_telemetry:
+          type: boolean

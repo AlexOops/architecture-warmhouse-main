@@ -1,0 +1,24 @@
+@startuml SmartHome_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Система "Теплый дом" — контекст (AS-IS)
+
+Person(user, "Пользователь", "Владелец дома. Управляет отоплением и просматривает температуру.")
+Person(installer, "Специалист по установке", "Подключает оборудование и регистрирует его в системе.")
+
+System_Boundary(sys, "Монолитное приложение Теплый дом") {
+    System(smartHomeApp, "Smart Home Monolith", "Веб-приложение на Go + PostgreSQL", "Принимает команды пользователей и обрабатывает данные с датчиков.")
+}
+
+System_Ext(browser, "Веб-браузер", "Интерфейс, через который пользователи работают с системой.")
+System_Ext(devices, "Датчики и модули отопления", "Датчики температуры и исполнительные устройства в домах.")
+
+Rel(user, browser, "Использует для управления домом", "HTTPS")
+Rel(browser, smartHomeApp, "HTTP-запросы: включить/выключить отопление, получить температуру", "HTTP(S)")
+
+Rel(installer, smartHomeApp, "Администрирование, регистрация новых устройств", "Web UI")
+
+Rel(devices, smartHomeApp, "Отправляют показания температуры", "Пропр. протокол / IP")
+Rel(smartHomeApp, devices, "Отправляет команды управления отоплением", "Пропр. протокол / IP")
+
+@enduml

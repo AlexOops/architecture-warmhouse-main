@@ -1,0 +1,31 @@
+@startuml DeviceManagement_Components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Device Management Service — компоненты
+
+Person_Ext(user, "Пользователь")
+Container_Ext(apiGateway, "API Gateway", "Внешний контейнер")
+ContainerDb(deviceDb, "Device DB", "PostgreSQL", "Устройства и их привязка к домам.")
+ContainerQueue(eventBus, "Event Bus", "Kafka/RabbitMQ/NATS", "События в системе.")
+
+Container_Boundary(deviceSvc, "Device Management Service") {
+
+  Component(deviceApi, "Device API", "REST API", "Принимает запросы от API Gateway.")
+  Component(deviceAppService, "Device Application Service", "Сервис приложения", "Оркеструет бизнес-операции с устройствами.")
+  Component(deviceRegistry, "Device Registry", "Domain service", "Логика регистрации и управления устройствами.")
+  Component(deviceRepo, "Device Repository", "Repository", "Работа с Device DB.")
+  Component(deviceEventPublisher, "Device Event Publisher", "Adapter", "Публикация событий об устройствах в Event Bus.")
+}
+
+Rel(user, apiGateway, "Действует через", "HTTPS")
+Rel(apiGateway, deviceApi, "REST-запросы: регистрация, привязка, изменение состояния", "REST")
+
+Rel(deviceApi, deviceAppService, "Вызывает")
+Rel(deviceAppService, deviceRegistry, "Использует доменную логику")
+Rel(deviceAppService, deviceRepo, "Читает/пишет данные об устройствах")
+Rel(deviceAppService, deviceEventPublisher, "Публикует доменные события")
+
+Rel(deviceRepo, deviceDb, "SQL-запросы", "JDBC/driver")
+Rel(deviceEventPublisher, eventBus, "Публикует сообщения", "Events")
+
+@enduml
